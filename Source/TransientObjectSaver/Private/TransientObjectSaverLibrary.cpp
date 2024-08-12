@@ -135,33 +135,54 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 			UTexture* Value = nullptr;
 			if (MaterialInstanceDynamic->GetTextureParameterValue(MaterialsParameterInfos[ParameterIndex].Name, Value, true))
 			{
-				if (TransientObjectSaver::IsTransient(Value))
-				{
-					if (!Value->Source.IsValid())
-					{
-						UTexture2D* Texture2D = Cast<UTexture2D>(Value);
-						if (Texture2D)
-						{
-							FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
-							if (PlatformData->Mips.IsValidIndex(0))
-							{
-								const void* Data = PlatformData->Mips[0].BulkData.LockReadOnly();
+			    if (TransientObjectSaver::IsTransient(Value))
+			    {
+			        if (!Value->Source.IsValid())
+			        {
+			            UTexture2D* Texture2D = Cast<UTexture2D>(Value);
+			            if (Texture2D)
+			            {
+			                FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
+			                if (PlatformData && PlatformData->Mips.IsValidIndex(0))
+			                {
+			                    // Lock the texture data for reading
+			                    const void* Data = PlatformData->Mips[0].BulkData.LockReadOnly();
 
-								FImageView ImageView(const_cast<void*>(Data), PlatformData->Mips[0].SizeX, PlatformData->Mips[0].SizeY, ERawImageFormat::BGRA8);
-								PlatformData->Mips[0].BulkData.Unlock();
-								Value->Source.Init(ImageView);
-							}
-						}
-					}
-					const FString TextureName = TextureNameGenerator.Execute(Value, Material, MaterialPath, MaterialsParameterInfos[ParameterIndex].Name.ToString());
-					if (!TextureName.IsEmpty())
-					{
-						TransientObjectSaver::SaveUObject(Value, TextureName);
-					}
-				}
-				UE_LOG(LogTemp, Warning, TEXT("Param: %s [%s] = %s"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), *Value->GetFullName());
-				MaterialInstance->SetTextureParameterValueEditorOnly(MaterialsParameterInfos[ParameterIndex], Value);
+			                    // Access the raw texture data and handle it as needed
+			                    int32 Width = PlatformData->Mips[0].SizeX;
+			                    int32 Height = PlatformData->Mips[0].SizeY;
+			                    int32 ImageBytes = Width * Height * 4; // Assuming 4 bytes per pixel for BGRA8
+
+			                    // Create a buffer to store the image data
+			                    TArray<uint8> ImageData;
+			                    ImageData.AddUninitialized(ImageBytes);
+
+			                    // Copy the data from the locked region
+			                    FMemory::Memcpy(ImageData.GetData(), Data, ImageBytes);
+
+			                    // Unlock the bulk data
+			                    PlatformData->Mips[0].BulkData.Unlock();
+
+			                    // If you need to initialize the texture source with this data
+			                    Value->Source.Init(Width, Height, 1, 1, TSF_BGRA8, ImageData.GetData());
+
+			                    // Additional processing or saving the texture can be done here
+			                }
+			            }
+			        }
+
+			        // Generate texture name and save the UObject if needed
+			        const FString TextureName = TextureNameGenerator.Execute(Value, Material, MaterialPath, MaterialsParameterInfos[ParameterIndex].Name.ToString());
+			        if (!TextureName.IsEmpty())
+			        {
+			            TransientObjectSaver::SaveUObject(Value, TextureName);
+			        }
+			    }
+
+			    UE_LOG(LogTemp, Warning, TEXT("Param: %s [%s] = %s"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), *Value->GetFullName());
+			    MaterialInstance->SetTextureParameterValueEditorOnly(MaterialsParameterInfos[ParameterIndex], Value);
 			}
+
 		}
 		OutMaterial = MaterialInstance;
 		return TransientObjectSaver::SaveUObject(MaterialInstance, MaterialPath);
