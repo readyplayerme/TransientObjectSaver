@@ -8,7 +8,9 @@
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "LODUtilities.h"
-
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
+#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 namespace TransientObjectSaver
 {
@@ -145,33 +147,23 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 			                FTexturePlatformData* PlatformData = Texture2D->GetPlatformData();
 			                if (PlatformData && PlatformData->Mips.IsValidIndex(0))
 			                {
-			                    // Lock the texture data for reading
 			                    const void* Data = PlatformData->Mips[0].BulkData.LockReadOnly();
-
-			                    // Access the raw texture data and handle it as needed
-			                    int32 Width = PlatformData->Mips[0].SizeX;
-			                    int32 Height = PlatformData->Mips[0].SizeY;
+			                    const int32 Width = PlatformData->Mips[0].SizeX;
+			                    const int32 Height = PlatformData->Mips[0].SizeY;
 			                    int32 ImageBytes = Width * Height * 4; // Assuming 4 bytes per pixel for BGRA8
-
-			                    // Create a buffer to store the image data
+			                	
 			                    TArray<uint8> ImageData;
 			                    ImageData.AddUninitialized(ImageBytes);
-
-			                    // Copy the data from the locked region
+			                	
 			                    FMemory::Memcpy(ImageData.GetData(), Data, ImageBytes);
-
-			                    // Unlock the bulk data
+			                	
 			                    PlatformData->Mips[0].BulkData.Unlock();
 
-			                    // If you need to initialize the texture source with this data
 			                    Value->Source.Init(Width, Height, 1, 1, TSF_BGRA8, ImageData.GetData());
-
-			                    // Additional processing or saving the texture can be done here
 			                }
 			            }
 			        }
-
-			        // Generate texture name and save the UObject if needed
+			    	
 			        const FString TextureName = TextureNameGenerator.Execute(Value, Material, MaterialPath, MaterialsParameterInfos[ParameterIndex].Name.ToString());
 			        if (!TextureName.IsEmpty())
 			        {
