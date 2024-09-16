@@ -6,7 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "TransientObjectSaverLibrary.generated.h"
 
-GLTFRUNTIME_API DECLARE_LOG_CATEGORY_EXTERN(LogTransientObjectSaver, Log, All);
+TRANSIENTOBJECTSAVER_API DECLARE_LOG_CATEGORY_EXTERN(LogTransientObjectSaver, Log, All);
 
 DECLARE_DYNAMIC_DELEGATE_RetVal_ThreeParams(FString, FTransientObjectSaverMaterialNameGenerator, UMaterialInterface*, Material, const int32, MaterialIndex, const FString&, SlotName);
 DECLARE_DYNAMIC_DELEGATE_RetVal_FourParams(FString, FTransientObjectSaverTextureNameGenerator, UTexture*, Texture, UMaterialInterface*, Material, const FString&, MaterialPath, const FString&, ParamName);
