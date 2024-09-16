@@ -12,6 +12,9 @@
 #include "Engine/SkinnedAssetCommon.h"
 #endif
 
+
+DEFINE_LOG_CATEGORY(LogTransientObjectSaver);
+
 namespace TransientObjectSaver
 {
 	bool IsTransient(UObject* Object)
@@ -33,20 +36,20 @@ namespace TransientObjectSaver
 	{
 		if (!FPackageName::IsValidObjectPath(Path))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Invalid UPackage path %s"), *Path);
+			UE_LOG(LogTransientObjectSaver, Error, TEXT("Invalid UPackage path %s"), *Path);
 			return false;
 		}
 
 		if (FindPackage(nullptr, *Path) || LoadPackage(nullptr, *Path, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone))
 		{
-			UE_LOG(LogTemp, Error, TEXT("UPackage %s already exists"), *Path);
+			UE_LOG(LogTransientObjectSaver, Error, TEXT("UPackage %s already exists"), *Path);
 			return false;
 		}
 
 		UPackage* NewPackage = CreatePackage(*Path);
 		if (!NewPackage)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Unable to create UPackage %s"), *Path);
+			UE_LOG(LogTransientObjectSaver, Error, TEXT("Unable to create UPackage %s"), *Path);
 			return false;
 		}
 
@@ -54,7 +57,7 @@ namespace TransientObjectSaver
 
 		if (!Object->Rename(nullptr, NewPackage, REN_DontCreateRedirectors))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Unable to move UObject %s into UPackage %s"), *Object->GetFullName(), *Path);
+			UE_LOG(LogTransientObjectSaver, Error, TEXT("Unable to move UObject %s into UPackage %s"), *Object->GetFullName(), *Path);
 			return false;
 		}
 
@@ -69,13 +72,13 @@ namespace TransientObjectSaver
 
 		if (!Object->Rename(*NewName, nullptr, REN_DontCreateRedirectors))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Unable to rename UObject %s to %s"), *Object->GetFullName(), *NewName);
+			UE_LOG(LogTransientObjectSaver, Error, TEXT("Unable to rename UObject %s to %s"), *Object->GetFullName(), *NewName);
 			return false;
 		}
 
 		if (!UPackage::SavePackage(NewPackage, Object, EObjectFlags::RF_Standalone | EObjectFlags::RF_Public, *FPackageName::LongPackageNameToFilename(Path, FPackageName::GetAssetPackageExtension())))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Unable to save UPackage %s"), *NewPackage->GetPathName());
+			UE_LOG(LogTransientObjectSaver, Error, TEXT("Unable to save UPackage %s"), *NewPackage->GetPathName());
 			return false;
 		}
 
@@ -100,7 +103,7 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 		return false;
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("Material %s %s %d"), *(Material->GetFullName()), *(Material->GetOutermost()->GetFullName()), Material->GetOutermost()->HasAnyFlags(EObjectFlags::RF_Transient));
+	UE_LOG(LogTransientObjectSaver, Error, TEXT("Material %s %s %d"), *(Material->GetFullName()), *(Material->GetOutermost()->GetFullName()), Material->GetOutermost()->HasAnyFlags(EObjectFlags::RF_Transient));
 	UMaterialInstanceDynamic* MaterialInstanceDynamic = Cast<UMaterialInstanceDynamic>(Material);
 	if (MaterialInstanceDynamic)
 	{
@@ -115,7 +118,7 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 			float Value = 0;
 			if (MaterialInstanceDynamic->GetScalarParameterValue(MaterialsParameterInfos[ParameterIndex].Name, Value, true))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Param: %s [%s] = %f"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), Value);
+				UE_LOG(LogTransientObjectSaver, Warning, TEXT("Param: %s [%s] = %f"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), Value);
 				MaterialInstance->SetScalarParameterValueEditorOnly(MaterialsParameterInfos[ParameterIndex], Value);
 			}
 		}
@@ -126,7 +129,7 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 			FLinearColor Value = FLinearColor::Black;
 			if (MaterialInstanceDynamic->GetVectorParameterValue(MaterialsParameterInfos[ParameterIndex].Name, Value, true))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Param: %s [%s] = %s"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), *Value.ToString());
+				UE_LOG(LogTransientObjectSaver, Warning, TEXT("Param: %s [%s] = %s"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), *Value.ToString());
 				MaterialInstance->SetVectorParameterValueEditorOnly(MaterialsParameterInfos[ParameterIndex], Value);
 			}
 		}
@@ -171,7 +174,7 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 			        }
 			    }
 
-			    UE_LOG(LogTemp, Warning, TEXT("Param: %s [%s] = %s"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), *Value->GetFullName());
+			    UE_LOG(LogTransientObjectSaver, Warning, TEXT("Param: %s [%s] = %s"), *MaterialsParameterInfos[ParameterIndex].Name.ToString(), *ParameterGuids[ParameterIndex].ToString(), *Value->GetFullName());
 			    MaterialInstance->SetTextureParameterValueEditorOnly(MaterialsParameterInfos[ParameterIndex], Value);
 			}
 
@@ -202,7 +205,7 @@ bool UTransientObjectSaverLibrary::SaveTransientStaticMesh(UStaticMesh* StaticMe
 
 	if (!StaticMesh->GetMeshDescription(0))
 	{
-		UE_LOG(LogTemp, Error, TEXT("The StaticMesh has no MeshDescription"));
+		UE_LOG(LogTransientObjectSaver, Error, TEXT("The StaticMesh has no MeshDescription"));
 		return false;
 	}
 
@@ -247,16 +250,16 @@ bool UTransientObjectSaverLibrary::SaveTransientSkeletalMesh(USkeletalMesh* Skel
 	FSkeletalMeshModel* ImportedResource = SkeletalMesh->GetImportedModel();
 	if (!ImportedResource)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Unable to GetImportedModel()"));
+		UE_LOG(LogTransientObjectSaver, Error, TEXT("Unable to GetImportedModel()"));
 		return false;
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("ImportedResource: %d"), ImportedResource->LODModels.Num());
+	UE_LOG(LogTransientObjectSaver, Log, TEXT("ImportedResource: %d"), ImportedResource->LODModels.Num());
 
 	FSkeletalMeshRenderData* RenderData = SkeletalMesh->GetResourceForRendering();
 	if (!RenderData)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Unable to access RenderData"));
+		UE_LOG(LogTransientObjectSaver, Error, TEXT("Unable to access RenderData"));
 		return false;
 	}
 
@@ -286,7 +289,7 @@ bool UTransientObjectSaverLibrary::SaveTransientSkeletalMesh(USkeletalMesh* Skel
 			//ImportData.PointToRawMap.Add(VertexIndex);
 		//}
 
-		UE_LOG(LogTemp, Error, TEXT("LOD %d has %d vertices and %d sections"), LODIndex, ImportedResource->LODModels[LODIndex].NumVertices, ImportedResource->LODModels[LODIndex].Sections.Num());
+		UE_LOG(LogTransientObjectSaver, Log, TEXT("LOD %d has %d vertices and %d sections"), LODIndex, ImportedResource->LODModels[LODIndex].NumVertices, ImportedResource->LODModels[LODIndex].Sections.Num());
 		const int32 NumSections = RenderData->LODRenderData[LODIndex].RenderSections.Num();
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
 		{
