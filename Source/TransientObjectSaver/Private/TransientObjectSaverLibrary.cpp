@@ -103,7 +103,7 @@ bool UTransientObjectSaverLibrary::SaveTransientMaterial(UMaterialInterface* Mat
 		return false;
 	}
 
-	UE_LOG(LogTransientObjectSaver, Error, TEXT("Material %s %s %d"), *(Material->GetFullName()), *(Material->GetOutermost()->GetFullName()), Material->GetOutermost()->HasAnyFlags(EObjectFlags::RF_Transient));
+	UE_LOG(LogTransientObjectSaver, Log, TEXT("Material %s %s %d"), *(Material->GetFullName()), *(Material->GetOutermost()->GetFullName()), Material->GetOutermost()->HasAnyFlags(EObjectFlags::RF_Transient));
 	UMaterialInstanceDynamic* MaterialInstanceDynamic = Cast<UMaterialInstanceDynamic>(Material);
 	if (MaterialInstanceDynamic)
 	{
@@ -234,8 +234,9 @@ bool UTransientObjectSaverLibrary::SaveTransientStaticMesh(UStaticMesh* StaticMe
 
 bool UTransientObjectSaverLibrary::SaveTransientSkeletalMesh(USkeletalMesh* SkeletalMesh, const FString& SkeletalMeshPath, const FString& SkeletonPath, const FString& PhysicsAssetPath, const FTransientObjectSaverMaterialNameGenerator& MaterialNameGenerator, const FTransientObjectSaverTextureNameGenerator& TextureNameGenerator)
 {
-	if (!SkeletalMesh)
+	if (!IsValid(SkeletalMesh))
 	{
+		UE_LOG(LogTransientObjectSaver, Error, TEXT("Invalid or destroyed SkeletalMesh."));
 		return false;
 	}
 
